@@ -23,22 +23,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Send email using Resend
-    // Make sure to install: npm install resend
-    // And set RESEND_API_KEY in your environment variables
+    // Check if environment variables are set
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY is not set');
+      return NextResponse.json(
+        { error: 'Email service not configured. Please contact the site administrator.' },
+        { status: 500 }
+      );
+    }
+
     try {
       const { Resend } = await import('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);
 
-      if (!process.env.RESEND_API_KEY) {
-        console.error('RESEND_API_KEY is not set');
-        return NextResponse.json(
-          { error: 'Email service not configured. Please contact the site administrator.' },
-          { status: 500 }
-        );
-      }
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'Contact Form <onboarding@resend.dev>';
+      
+      console.log('Attempting to send email:', {
+        from: fromEmail,
+        to: 'info@rcdev.me',
+        hasApiKey: !!process.env.RESEND_API_KEY,
+      });
 
       const emailResult = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'Contact Form <onboarding@resend.dev>',
+        from: fromEmail,
         to: 'info@rcdev.me',
         replyTo: email,
         subject: `Contact Form Submission from ${name}`,
@@ -55,27 +62,43 @@ export async function POST(request: NextRequest) {
       });
 
       if (emailResult.error) {
-        console.error('Resend error:', emailResult.error);
+        console.error('Resend API error:', JSON.stringify(emailResult.error, null, 2));
         return NextResponse.json(
-          { error: 'Failed to send email. Please try again later.' },
+          { 
+            error: 'Failed to send email. Please try again later.',
+            details: process.env.NODE_ENV === 'development' ? emailResult.error : undefined
+          },
           { status: 500 }
         );
       }
 
+      console.log('Email sent successfully:', emailResult.data?.id);
       return NextResponse.json(
         { message: 'Form submitted successfully' },
         { status: 200 }
       );
-    } catch (importError) {
+    } catch (error) {
+      console.error('Error sending email:', error);
+      
       // If Resend is not installed, provide helpful error
-      if (importError instanceof Error && importError.message.includes('Cannot find module')) {
-        console.error('Resend package not installed');
+      if (error instanceof Error && error.message.includes('Cannot find module')) {
         return NextResponse.json(
           { error: 'Email service not configured. Please install the resend package.' },
           { status: 500 }
         );
       }
-      throw importError;
+
+      // Log the full error for debugging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Full error details:', error);
+      
+      return NextResponse.json(
+        { 
+          error: 'Failed to send message. Please try again later.',
+          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        },
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error('Error processing contact form:', error);
