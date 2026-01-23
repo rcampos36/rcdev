@@ -130,7 +130,7 @@ export default function Services() {
               Open to new challenges in two core areas of specialization. —
             </h3>
             <p className="text-base font-normal text-gray-400 font-big-shoulders uppercase mb-8">
-              Let's work together to create something exceptional for your business. —
+              Let&apos;s work together to create something exceptional for your business. —
             </p>
             <button className="bg-gray-200 text-gray-900 px-6 py-3 rounded-lg font-big-shoulders uppercase tracking-tight text-sm font-semibold hover:bg-gray-300 transition-colors">
               CURRENTLY AVAILABLE
