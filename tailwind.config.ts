@@ -13,8 +13,8 @@ const config: Config = {
         foreground: "var(--foreground)",
       },
       fontFamily: {
-        'big-shoulders': ['var(--font-big-shoulders)', 'sans-serif'],
-        'archivo': ['var(--font-archivo)', 'sans-serif'],
+        'big-shoulders': ['Big Shoulders Display', 'sans-serif'],
+        'archivo': ['Archivo', 'sans-serif'],
       },
     },
   },
