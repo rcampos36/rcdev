@@ -7,16 +7,6 @@ export default function Contact() {
   const [sectionVisible, setSectionVisible] = useState(false);
   const [animatedBorder, setAnimatedBorder] = useState(false);
   const sectionRef = useRef<HTMLElement | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    message: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<{
-    type: 'success' | 'error' | null;
-    message: string;
-  }>({ type: null, message: '' });
 
   useEffect(() => {
     // Observe the section for scroll-based animations
@@ -44,52 +34,6 @@ export default function Contact() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus({ type: null, message: '' });
-
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSubmitStatus({
-          type: 'success',
-          message: 'Thank you! Your message has been sent successfully.',
-        });
-        setFormData({ name: "", email: "", message: "" });
-      } else {
-        setSubmitStatus({
-          type: 'error',
-          message: data.error || 'Failed to send message. Please try again.',
-        });
-      }
-    } catch (error) {
-      setSubmitStatus({
-        type: 'error',
-        message: 'Failed to send message. Please try again later.',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
 
 
   return (
@@ -154,95 +98,9 @@ export default function Contact() {
             </h3>
             
             {/* Passion Text */}
-            <p className="text-base font-normal text-gray-900 font-big-shoulders mb-8">
+            <p className="text-base font-normal text-gray-900 font-big-shoulders">
               with a passion for creating —
             </p>
-
-            {/* Form Title */}
-            <h3 className="text-2xl font-bold text-gray-900 mb-6 font-big-shoulders uppercase tracking-tight mt-16">
-              Get In Touch
-            </h3>
-
-            {/* Contact Form */}
-            <form onSubmit={handleSubmit} className="space-y-6 pr-8 md:pr-12 lg:pr-16 mt-8">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-normal text-gray-900 mb-2 font-big-shoulders uppercase tracking-tight"
-                >
-                  Name —
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-900/30 bg-white text-gray-900 font-big-shoulders focus:outline-none focus:border-gray-600/30 transition-colors"
-                  style={{ fontSize: '14px' }}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-normal text-gray-900 mb-2 font-big-shoulders uppercase tracking-tight"
-                >
-                  Email —
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-900/30 bg-white text-gray-900 font-big-shoulders focus:outline-none focus:border-gray-600/30 transition-colors"
-                  style={{ fontSize: '14px' }}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="message"
-                  className="block text-sm font-normal text-gray-900 mb-2 font-big-shoulders uppercase tracking-tight"
-                >
-                  Message —
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
-                  rows={6}
-                  className="w-full px-4 py-3 border border-gray-900/30 bg-white text-gray-900 font-big-shoulders focus:outline-none focus:border-gray-600/30 transition-colors resize-none"
-                  style={{ fontSize: '14px' }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gray-900 text-white px-6 py-4 font-big-shoulders uppercase tracking-tight hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ fontSize: '14px' }}
-              >
-                {isSubmitting ? "Sending..." : "Send Message"}
-              </button>
-
-              {submitStatus.type && (
-                <div
-                  className={`mt-4 p-4 rounded ${
-                    submitStatus.type === 'success'
-                      ? 'bg-green-50 text-green-800 border border-green-200'
-                      : 'bg-red-50 text-red-800 border border-red-200'
-                  }`}
-                >
-                  <p className="text-sm font-big-shoulders">{submitStatus.message}</p>
-                </div>
-              )}
-            </form>
           </div>
 
           {/* Right Column */}
