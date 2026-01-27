@@ -120,7 +120,7 @@ export default function Projects() {
         tags: ["React JS", "Responsive"],
         description: "Choose the best healthier way of life —",
         imageUrl: "/images/Banner.jpg",
-        url: "https://farmcredit.com/",
+        url: "https://camposville.vercel.app/",
       },
   ];
 
