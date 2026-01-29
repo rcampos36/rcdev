@@ -115,13 +115,21 @@ export default function Projects() {
       url: "https://farmcredit.com/",
     },
     {
-        title: "Camposville Farm",
-        date: "09 / 2025",
-        tags: ["React JS", "Responsive"],
-        description: "Choose the best healthier way of life —",
-        imageUrl: "/images/Banner.jpg",
-        url: "https://camposville.vercel.app/",
-      },
+      title: "Camposville Farm",
+      date: "09 / 2025",
+      tags: ["React JS", "Responsive"],
+      description: "Choose the best healthier way of life —",
+      imageUrl: "/images/Banner.jpg",
+      url: "https://camposville.vercel.app/",
+    },
+    {
+      title: "Lenca Luxury Restaurant",
+      date: "01 / 2025",
+      tags: ["Nextjs", "Responsive", "Hospitality"],
+      description: "Elegant fine dining and cocktail experience —",
+      imageUrl: "/images/luxury-restaurant.png",
+      url: "https://lenca.vercel.app/",
+    },
   ];
 
   return (
