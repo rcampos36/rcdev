@@ -130,6 +130,14 @@ export default function Projects() {
       imageUrl: "/images/luxury-restaurant.png",
       url: "https://lenca.vercel.app/",
     },
+    {
+      title: "Ikal a Seafood Restaurant",
+      date: "02 / 2025",
+      tags: ["WordPress", "Responsive", "Hospitality"],
+      description: "Elegant fine seafood dining and cocktail experience —",
+      imageUrl: "/images/seafood-restaurant.jpg",
+      url: "https://lightgrey-walrus-352425.hostingersite.com/",
+    },
   ];
 
   return (
