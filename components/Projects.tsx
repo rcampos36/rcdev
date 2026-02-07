@@ -138,6 +138,14 @@ export default function Projects() {
       imageUrl: "/images/seafood-restaurant.jpg",
       url: "https://lightgrey-walrus-352425.hostingersite.com/",
     },
+    {
+      title: "Citlali Interion Design ",
+      date: "02 / 2025",
+      tags: ["NextJS", "Responsive", "Hospitality"],
+      description: "Citlali Interiors — It's a fictional firm developed to showcase my skills. —",
+      imageUrl: "/images/banner-image-1.jpg",
+      url: "https://citlali-hk4x.vercel.app/",
+    },
   ];
 
   return (
