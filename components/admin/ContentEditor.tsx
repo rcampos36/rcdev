@@ -102,7 +102,7 @@ async function compressImage(file: File) {
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxWidth = 1400;
+    const maxWidth = 1200;
     const scale = Math.min(1, maxWidth / bitmap.width);
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(bitmap.width * scale);
@@ -111,7 +111,7 @@ async function compressImage(file: File) {
     if (!context) return file;
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.78)
+      canvas.toBlob(resolve, "image/jpeg", 0.72)
     );
     bitmap.close();
     if (!blob) return file;
@@ -121,33 +121,10 @@ async function compressImage(file: File) {
   }
 }
 
-function fileExtension(file: File) {
-  if (file.type === "image/png") return "png";
-  if (file.type === "image/gif") return "gif";
-  if (file.type === "image/webp") return "webp";
-  return "jpg";
-}
-
 async function uploadImage(file: File) {
   const compressed = await compressImage(file);
-  const modeResponse = await fetch("/api/admin/upload");
-  const mode = await readResponseJson<{ blob?: boolean; error?: string }>(modeResponse);
-  if (!modeResponse.ok) {
-    throw new Error(mode.error || "Not authorized to upload");
-  }
-
-  if (mode.blob) {
-    const { upload } = await import("@vercel/blob/client");
-    const blob = await upload(
-      `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExtension(compressed)}`,
-      compressed,
-      {
-        access: "public",
-        handleUploadUrl: "/api/admin/upload",
-        contentType: compressed.type || "image/jpeg",
-      }
-    );
-    return blob.url;
+  if (compressed.size > 3.5 * 1024 * 1024) {
+    throw new Error("Image is still too large. Use a smaller photo.");
   }
 
   const formData = new FormData();
@@ -197,7 +174,13 @@ function ImageField({
               try {
                 onChange(await uploadImage(file));
               } catch (uploadError) {
-                setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
+                const message =
+                  uploadError instanceof Error ? uploadError.message : "Upload failed";
+                setError(
+                  /json/i.test(message)
+                    ? "Upload failed. Redeploy the latest code and try a smaller image."
+                    : message
+                );
               } finally {
                 setUploading(false);
               }

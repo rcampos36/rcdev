@@ -10,7 +10,7 @@ export function hasBlobStore() {
 }
 
 export function blobMissingMessage() {
-  return "Image uploads need Vercel Blob in production. Create a Blob store in the Vercel dashboard for this project, then redeploy so BLOB_READ_WRITE_TOKEN is available.";
+  return "Vercel Blob is not connected. In the Blob store, open Projects → Connect to Project, then redeploy. BLOB_STORE_ID is enough; you do not need to create BLOB_READ_WRITE_TOKEN by hand.";
 }
 
 export function filesystemReadOnlyMessage() {

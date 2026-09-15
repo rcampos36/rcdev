@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { ADMIN_COOKIE, verifySessionToken } from "@/lib/auth";
 import {
   blobMissingMessage,
   hasBlobStore,
+  saveImageToBlob,
   saveImageToDisk,
   toDataUrl,
 } from "@/lib/storage";
@@ -18,10 +18,6 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/gif": "gif",
 };
 
-function isServerlessHost() {
-  return Boolean(process.env.VERCEL);
-}
-
 function isUploadBlob(value: FormDataEntryValue | null): value is File {
   return Boolean(
     value &&
@@ -31,84 +27,45 @@ function isUploadBlob(value: FormDataEntryValue | null): value is File {
   );
 }
 
-async function requireAdmin(request: NextRequest) {
-  const token = request.cookies.get(ADMIN_COOKIE)?.value;
-  if (!(await verifySessionToken(token))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return null;
-}
-
-export async function GET(request: NextRequest) {
-  const unauthorized = await requireAdmin(request);
-  if (unauthorized) return unauthorized;
-  return NextResponse.json({ blob: hasBlobStore() });
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status });
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const contentType = request.headers.get("content-type") || "";
-
-    if (contentType.includes("application/json")) {
-      const body = (await request.json()) as HandleUploadBody;
-      const isCompletion = body?.type === "blob.upload-completed";
-
-      if (!isCompletion) {
-        const unauthorized = await requireAdmin(request);
-        if (unauthorized) return unauthorized;
-        if (!hasBlobStore()) {
-          return NextResponse.json({ error: blobMissingMessage() }, { status: 500 });
-        }
-      }
-
-      const result = await handleUpload({
-        body,
-        request,
-        onBeforeGenerateToken: async () => ({
-          allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-          maximumSizeInBytes: 10 * 1024 * 1024,
-          addRandomSuffix: true,
-        }),
-      });
-
-      return NextResponse.json(result);
+    const token = request.cookies.get(ADMIN_COOKIE)?.value;
+    if (!(await verifySessionToken(token))) {
+      return jsonError("Unauthorized", 401);
     }
-
-    const unauthorized = await requireAdmin(request);
-    if (unauthorized) return unauthorized;
 
     let formData: FormData;
     try {
       formData = await request.formData();
     } catch {
-      return NextResponse.json(
-        { error: "The image is too large for this host. Try a smaller file." },
-        { status: 413 }
-      );
+      return jsonError("The image is too large. Try a smaller file.", 413);
     }
 
     const file = formData.get("file");
     if (!isUploadBlob(file)) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+      return jsonError("No file uploaded", 400);
     }
 
     const extension = ALLOWED_TYPES[file.type] || "jpg";
     if (file.type && !ALLOWED_TYPES[file.type]) {
-      return NextResponse.json({ error: "Use a JPG, PNG, WEBP, or GIF image" }, { status: 400 });
+      return jsonError("Use a JPG, PNG, WEBP, or GIF image", 400);
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "Image must be 5MB or smaller" }, { status: 400 });
+    if (file.size > 4 * 1024 * 1024) {
+      return jsonError("Image must be 4MB or smaller", 400);
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
     const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+    const contentType = file.type || "image/jpeg";
 
-    if (isServerlessHost()) {
-      return NextResponse.json(
-        { error: blobMissingMessage() },
-        { status: 500 }
-      );
+    if (hasBlobStore()) {
+      const url = await saveImageToBlob(safeName, bytes, contentType);
+      return NextResponse.json({ url });
     }
 
     try {
@@ -117,15 +74,16 @@ export async function POST(request: NextRequest) {
     } catch (diskError) {
       console.error("Local image write failed", diskError);
       if (bytes.byteLength <= 750_000) {
-        return NextResponse.json({ url: toDataUrl(bytes, file.type || "image/jpeg") });
+        return NextResponse.json({ url: toDataUrl(bytes, contentType) });
       }
-      return NextResponse.json({ error: blobMissingMessage() }, { status: 500 });
+      return jsonError(blobMissingMessage(), 500);
     }
   } catch (error) {
     console.error("Image upload failed", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to upload image" },
-      { status: 500 }
+    const message = error instanceof Error ? error.message : "Failed to upload image";
+    return jsonError(
+      /token|oidc|blob/i.test(message) ? blobMissingMessage() : message,
+      500
     );
   }
 }
