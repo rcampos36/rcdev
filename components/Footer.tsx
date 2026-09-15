@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import type { FooterContent } from "@/lib/content-types";
 
-export default function Footer() {
+export default function Footer({ content }: { content: FooterContent }) {
   const [sectionVisible, setSectionVisible] = useState(false);
   const sectionRef = useRef<HTMLElement | null>(null);
 
@@ -50,17 +52,17 @@ export default function Footer() {
           {/* Left: Name */}
           <div>
             <h3 className="text-2xl font-bold text-gray-900 font-big-shoulders uppercase tracking-tight">
-              ROGER CAMPOS
+              {content.name}
             </h3>
           </div>
 
           {/* Center-Right: Freelancer info */}
           <div className="md:text-center md:col-start-2">
             <h4 className="text-xl font-bold text-gray-900 mb-2 font-big-shoulders uppercase tracking-tight">
-              FREELANCER
+              {content.title}
             </h4>
             <p className="text-sm font-normal text-gray-600 font-big-shoulders">
-              passionate about meaningful web projects —
+              {content.tagline}
             </p>
           </div>
 
@@ -69,6 +71,12 @@ export default function Footer() {
             <p className="text-sm font-normal text-gray-600 font-big-shoulders">
               ©{new Date().getFullYear()}
             </p>
+            <Link
+              href="/admin"
+              className="mt-3 inline-block text-xs font-big-shoulders uppercase tracking-wider text-gray-600 border border-gray-300 rounded-full px-3 py-1 hover:text-gray-900 hover:border-gray-900 transition-colors"
+            >
+              Admin
+            </Link>
           </div>
         </div>
       </div>

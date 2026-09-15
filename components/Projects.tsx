@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import type { ProjectsContent } from "@/lib/content-types";
 
-export default function Projects() {
+export default function Projects({ content }: { content: ProjectsContent }) {
   const [visibleProjects, setVisibleProjects] = useState<number[]>([]);
   const [animatedBorder, setAnimatedBorder] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -43,7 +44,7 @@ export default function Projects() {
         if (observer) observer.disconnect();
       });
     };
-  }, []);
+  }, [content.items.length]);
 
   useEffect(() => {
     // Animate border on page load (only after mount)
@@ -57,96 +58,7 @@ export default function Projects() {
     return () => clearTimeout(timeout);
   }, [mounted]);
 
-  const projects = [
-    {
-      title: "More Vang",
-      date: "04 / 2021",
-      tags: ["WordPress", "Responsive"],
-      description: "We create valuable consumer experiences —",
-      imageUrl: "/images/MV_HERO.jpg",
-      url: "https://morevang.com/",
-    },
-    {
-      title: "Mythos",
-      date: "03 / 2022",
-      tags: ["WordPress", "Responsive"],
-      description: "Every gift creates a story —",
-      imageUrl: "/images/mythos.jpg",
-      url: "https://www.mythosplatform.com/",
-    },
-    {
-      title: "Why We lift",
-      date: "02 / 2022",
-      tags: ["WordPress", "Responsive"],
-      description: "ALL FAMILIES DESERVE A BETTER FUTURE —",
-      imageUrl: "/images/Mariela-Banner.jpg",
-      url: "https://whywelift.org/",
-    },
-    {
-      title: "CCSS0",
-      date: "01 / 2018",
-      tags: ["Dupal 8 Theme", "Responsive"],
-      description: "States Are Leading to Deliver a High-Quality Education to Each and Every Child —",
-      imageUrl: "/images/ccsso_0.png",
-      url: "https://ccsso.org/",
-    },
-    {
-      title: "Entrepreneurs' Organization",
-      date: "12 / 2023",
-      tags: ["Umbraco CMS", "Responsive"],
-      description: "Find your place among the world’s leaders —",
-      imageUrl: "/images/2024-GSEA.png",
-      url: "https://eonetwork.org/",
-    },
-    {
-      title: "Rebuild Rural",
-      date: "11 / 2021",
-      tags: ["Drupal 8 Theme", "Responsive"],
-      description: "The Rebuild Rural Infrastructure Coalition —",
-      imageUrl: "/images/rebuild-rural.png",
-      url: "https://rebuildrural.com/",
-    },
-    {
-      title: "Farm Credit",
-      date: "09 / 2018",
-      tags: ["Drupal 8 Theme", "Responsive"],
-      description: "Supporting rural communities and agriculture with reliable, consistent credit and financial services —",
-      imageUrl: "/images/farmcredit_0.png",
-      url: "https://farmcredit.com/",
-    },
-    {
-      title: "Camposville Farm",
-      date: "09 / 2025",
-      tags: ["React JS", "Responsive"],
-      description: "Choose the best healthier way of life —",
-      imageUrl: "/images/Banner.jpg",
-      url: "https://camposville.vercel.app/",
-    },
-    {
-      title: "Lenca Luxury Restaurant",
-      date: "01 / 2025",
-      tags: ["Nextjs", "Responsive", "Hospitality"],
-      description: "Elegant fine dining and cocktail experience —",
-      imageUrl: "/images/luxury-restaurant.png",
-      url: "https://lenca.vercel.app/",
-    },
-    {
-      title: "Ikal a Seafood Restaurant",
-      date: "02 / 2025",
-      tags: ["WordPress", "Responsive", "Hospitality"],
-      description: "Elegant fine seafood dining and cocktail experience —",
-      imageUrl: "/images/seafood-restaurant.jpg",
-      url: "https://lightgrey-walrus-352425.hostingersite.com/",
-    },
-    {
-      title: "Citlali Interion Design ",
-      date: "02 / 2025",
-      tags: ["NextJS", "Responsive", "Hospitality"],
-      description: "Citlali Interiors — It's a fictional firm developed to showcase my skills. —",
-      imageUrl: "/images/banner-image-1.jpg",
-      url: "https://citlali-hk4x.vercel.app/",
-    },
-  ];
+  const projects = content.items;
 
   return (
     <section
@@ -155,7 +67,7 @@ export default function Projects() {
     >
       <div className="max-w-[1800px] mx-auto">
         <h2 className="font-bold text-gray-900 mb-8 sm:mb-10 md:mb-12 font-big-shoulders tracking-tight uppercase relative py-2" style={{ fontSize: 'clamp(2rem, 8vw, 167px)' }}>
-          Projects
+          {content.heading}
           <span 
             suppressHydrationWarning
             className="absolute top-0 left-1/2 h-0.5 bg-gray-300"
@@ -183,18 +95,18 @@ export default function Projects() {
         </h2>
         <div className="mb-16 sm:mb-24 md:mb-32 grid md:grid-cols-2 gap-6 sm:gap-8">
           <div>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 font-big-shoulders uppercase tracking-tight">FRONTEND/WORDPRESS DEVELOPER</h3>
-            <p className="text-sm sm:text-base font-normal text-gray-900 font-big-shoulders">check out the latest projects —</p>
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 font-big-shoulders uppercase tracking-tight">{content.role}</h3>
+            <p className="text-sm sm:text-base font-normal text-gray-900 font-big-shoulders">{content.subtitle}</p>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 font-big-shoulders leading-tight">Freelance developer focused on purposeful design and impactful web projects. —</p>
-            <p className="text-xs sm:text-sm md:text-base font-normal text-gray-600 font-big-shoulders uppercase">I HELP BRANDS AND INDIVIDUALS STAND OUT WITH TAILORED DESIGN AND CREATIVE SOLUTIONS — </p>
+            <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 font-big-shoulders leading-tight">{content.intro}</p>
+            <p className="text-xs sm:text-sm md:text-base font-normal text-gray-600 font-big-shoulders uppercase">{content.tagline}</p>
           </div>
         </div>
         <div className="grid md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 lg:gap-20" style={{ columnGap: 'clamp(20px, 4vw, 30px)', rowGap: 'clamp(40px, 8vw, 80px)' }}>
           {projects.map((project, index) => (
             <div
-              key={index}
+              key={project.id}
               ref={(el) => {
                 projectRefs.current[index] = el;
               }}
@@ -212,14 +124,17 @@ export default function Projects() {
               {/* Image Card */}
               <div className="bg-gray-800 p-4 sm:p-6 md:p-8 rounded-lg mb-4 sm:mb-5 md:mb-6">
                 <div className="bg-stone-50 rounded-lg overflow-hidden relative h-48 sm:h-64 md:h-80 lg:h-96">
-                  <Image
-                    src={project.imageUrl}
-                    alt={project.title}
-                    fill
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    priority={index < 2}
-                  />
+                  {project.imageUrl ? (
+                    <Image
+                      src={project.imageUrl}
+                      alt={project.title}
+                      fill
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      priority={index < 2}
+                      unoptimized={project.imageUrl.startsWith("http")}
+                    />
+                  ) : null}
                 </div>
               </div>
 

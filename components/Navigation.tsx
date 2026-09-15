@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { FooterContent, NavigationContent } from "@/lib/content-types";
 
-export default function Navigation() {
+export default function Navigation({
+  navigation,
+  footer,
+}: {
+  navigation: NavigationContent;
+  footer: FooterContent;
+}) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -65,8 +72,8 @@ export default function Navigation() {
               className="flex flex-col leading-none"
               style={{ fontFamily: 'Archivo, sans-serif' }}
             >
-              <span className="font-normal text-gray-900 tracking-tight" style={{ fontSize: '37px' }}>Roger</span>
-              <span className="font-normal text-gray-900 tracking-tight" style={{ fontSize: '37px' }}>Campos</span>
+              <span className="font-normal text-gray-900 tracking-tight" style={{ fontSize: '37px' }}>{navigation.firstName}</span>
+              <span className="font-normal text-gray-900 tracking-tight" style={{ fontSize: '37px' }}>{navigation.lastName}</span>
             </a>
 
             {/* Hamburger Menu Button */}
@@ -131,8 +138,8 @@ export default function Navigation() {
                 }}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <span className="font-normal text-white tracking-tight" style={{ fontSize: '37px' }}>Roger</span>
-                <span className="font-normal text-white tracking-tight" style={{ fontSize: '37px' }}>Campos</span>
+                <span className="font-normal text-white tracking-tight" style={{ fontSize: '37px' }}>{navigation.firstName}</span>
+                <span className="font-normal text-white tracking-tight" style={{ fontSize: '37px' }}>{navigation.lastName}</span>
               </a>
             </div>
           </div>
@@ -187,17 +194,17 @@ export default function Navigation() {
                 {/* Left: Name */}
                 <div>
                   <h3 className="text-2xl font-bold text-white font-big-shoulders uppercase tracking-tight">
-                    ROGER CAMPOS
+                    {footer.name}
                   </h3>
                 </div>
 
                 {/* Center-Right: Freelancer info */}
                 <div className="md:text-center md:col-start-2">
                   <h4 className="text-xl font-bold text-white mb-2 font-big-shoulders uppercase tracking-tight">
-                    FREELANCER
+                    {footer.title}
                   </h4>
                   <p className="text-sm font-normal text-gray-300 font-big-shoulders">
-                    passionate about meaningful web projects —
+                    {footer.tagline}
                   </p>
                 </div>
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ServicesContent } from "@/lib/content-types";
 
-export default function Services() {
+export default function Services({ content }: { content: ServicesContent }) {
   const [visibleServices, setVisibleServices] = useState<number[]>([]);
   const [animatedBorder, setAnimatedBorder] = useState(false);
   const [sectionVisible, setSectionVisible] = useState(false);
@@ -68,20 +69,9 @@ export default function Services() {
         if (observer) observer.disconnect();
       });
     };
-  }, []);
+  }, [content.items.length]);
 
-  const services = [
-    {
-      title: "FRONTEND DEVELOPMENT",
-      number: "01",
-      description: "Front-end interfaces built from scratch \nResponsive layouts and accessibility \nUser experience best practices \nPerformance-friendly animations.",
-    },
-    {
-      title: "WORDPRESS DEVELOPMENT",
-      number: "02",
-      description: "Brand-driven WordPress solutions \nCohesive, scalable digital experiences \nVisual direction and layout systems \nConsistent styling across your site.",
-    },
-  ];
+  const services = content.items;
 
   return (
     <section
@@ -95,7 +85,7 @@ export default function Services() {
     >
       <div className="max-w-[1800px] mx-auto">
         <h2 className="font-bold text-gray-900 mb-8 sm:mb-10 md:mb-12 font-big-shoulders tracking-tight uppercase relative py-2" style={{ fontSize: 'clamp(2rem, 8vw, 167px)' }}>
-          SERVICES
+          {content.heading}
           <span 
             suppressHydrationWarning
             className="absolute top-0 left-1/2 h-0.5 bg-gray-300"
@@ -127,13 +117,13 @@ export default function Services() {
           {/* Left Column */}
           <div>
             <h3 className="text-3xl font-bold text-gray-900 mb-4 font-big-shoulders uppercase tracking-tight">
-              Open to new challenges in two core areas of specialization. —
+              {content.intro}
             </h3>
             <p className="text-base font-normal text-gray-400 font-big-shoulders uppercase mb-8">
-              Let&apos;s work together to create something exceptional for your business. —
+              {content.cta}
             </p>
             <button className="bg-gray-200 text-gray-900 px-6 py-3 rounded-lg font-big-shoulders uppercase tracking-tight text-sm font-semibold hover:bg-gray-300 transition-colors">
-              CURRENTLY AVAILABLE
+              {content.availability}
             </button>
           </div>
 
@@ -141,7 +131,7 @@ export default function Services() {
           <div>
             {services.map((service, index) => (
               <div
-                key={index}
+                key={service.id}
                 ref={(el) => {
                   serviceRefs.current[index] = el;
                 }}
