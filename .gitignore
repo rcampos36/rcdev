@@ -37,3 +37,5 @@ next-env.d.ts
 # uploaded admin images
 /public/uploads/*
 !/public/uploads/.gitkeep
+/data/uploads/*
+!/data/uploads/.gitkeep

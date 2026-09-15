@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import CmsImage from "@/components/CmsImage";
 import type { ContactContent } from "@/lib/content-types";
 
 export default function Contact({ content }: { content: ContactContent }) {
@@ -84,13 +84,12 @@ export default function Contact({ content }: { content: ContactContent }) {
             <div className="mb-6">
               <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden relative">
                 {content.profileImage ? (
-                  <Image
+                  <CmsImage
                     src={content.profileImage}
                     alt="Profile"
                     fill
                     className="object-cover"
                     sizes="128px"
-                    unoptimized={content.profileImage.startsWith("http")}
                   />
                 ) : null}
               </div>

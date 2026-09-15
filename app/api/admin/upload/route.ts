@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import { ADMIN_COOKIE, verifySessionToken } from "@/lib/auth";
+import {
+  blobMissingMessage,
+  hasBlobStore,
+  saveImageToBlob,
+  saveImageToDisk,
+  toDataUrl,
+} from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -11,6 +16,10 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/webp": "webp",
   "image/gif": "gif",
 };
+
+function isServerlessHost() {
+  return Boolean(process.env.VERCEL);
+}
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get(ADMIN_COOKIE)?.value;
@@ -36,9 +45,32 @@ export async function POST(request: NextRequest) {
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await fs.mkdir(uploadDir, { recursive: true });
-  await fs.writeFile(path.join(uploadDir, safeName), bytes);
 
-  return NextResponse.json({ url: `/uploads/${safeName}` });
+  try {
+    if (hasBlobStore()) {
+      const url = await saveImageToBlob(safeName, bytes, file.type);
+      return NextResponse.json({ url });
+    }
+
+    if (isServerlessHost()) {
+      return NextResponse.json({ error: blobMissingMessage() }, { status: 500 });
+    }
+
+    try {
+      const url = await saveImageToDisk(safeName, bytes);
+      return NextResponse.json({ url });
+    } catch (diskError) {
+      console.error("Local image write failed", diskError);
+      if (bytes.byteLength <= 750_000) {
+        return NextResponse.json({ url: toDataUrl(bytes, file.type) });
+      }
+      return NextResponse.json({ error: blobMissingMessage() }, { status: 500 });
+    }
+  } catch (error) {
+    console.error("Image upload failed", error);
+    return NextResponse.json(
+      { error: hasBlobStore() ? "Failed to upload image" : blobMissingMessage() },
+      { status: 500 }
+    );
+  }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import CmsImage from "@/components/CmsImage";
 import type { ProjectsContent } from "@/lib/content-types";
 
 export default function Projects({ content }: { content: ProjectsContent }) {
@@ -125,14 +125,13 @@ export default function Projects({ content }: { content: ProjectsContent }) {
               <div className="bg-gray-800 p-4 sm:p-6 md:p-8 rounded-lg mb-4 sm:mb-5 md:mb-6">
                 <div className="bg-stone-50 rounded-lg overflow-hidden relative h-48 sm:h-64 md:h-80 lg:h-96">
                   {project.imageUrl ? (
-                    <Image
+                    <CmsImage
                       src={project.imageUrl}
                       alt={project.title}
                       fill
                       className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       priority={index < 2}
-                      unoptimized={project.imageUrl.startsWith("http")}
                     />
                   ) : null}
                 </div>

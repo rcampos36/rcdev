@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { SiteContent } from "./content-types";
 import { DEFAULT_CONTENT } from "./default-content";
+import { filesystemReadOnlyMessage, hasBlobStore, readContentBlob, writeContentBlob } from "./storage";
 
 const CONTENT_PATH = path.join(process.cwd(), "data", "content.json");
 
@@ -23,10 +24,27 @@ function mergeContent(partial: Partial<SiteContent> | null | undefined): SiteCon
   };
 }
 
+function parseContent(raw: string) {
+  return mergeContent(JSON.parse(raw) as Partial<SiteContent>);
+}
+
+async function readLocalContent() {
+  const raw = await fs.readFile(CONTENT_PATH, "utf8");
+  return parseContent(raw);
+}
+
 export async function getContent(): Promise<SiteContent> {
+  if (hasBlobStore()) {
+    try {
+      const raw = await readContentBlob();
+      if (raw) return parseContent(raw);
+    } catch (error) {
+      console.error("Failed to read blob content", error);
+    }
+  }
+
   try {
-    const raw = await fs.readFile(CONTENT_PATH, "utf8");
-    return mergeContent(JSON.parse(raw) as Partial<SiteContent>);
+    return await readLocalContent();
   } catch {
     try {
       await fs.mkdir(path.dirname(CONTENT_PATH), { recursive: true });
@@ -40,7 +58,30 @@ export async function getContent(): Promise<SiteContent> {
 
 export async function saveContent(content: SiteContent): Promise<SiteContent> {
   const merged = mergeContent(content);
-  await fs.mkdir(path.dirname(CONTENT_PATH), { recursive: true });
-  await fs.writeFile(CONTENT_PATH, JSON.stringify(merged, null, 2), "utf8");
-  return merged;
+  const json = JSON.stringify(merged, null, 2);
+
+  if (hasBlobStore()) {
+    await writeContentBlob(json);
+    try {
+      await fs.mkdir(path.dirname(CONTENT_PATH), { recursive: true });
+      await fs.writeFile(CONTENT_PATH, json, "utf8");
+    } catch {
+      // Local write is optional when blob storage is the source of truth.
+    }
+    return merged;
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error(filesystemReadOnlyMessage());
+  }
+
+  try {
+    await fs.mkdir(path.dirname(CONTENT_PATH), { recursive: true });
+    await fs.writeFile(CONTENT_PATH, json, "utf8");
+    return merged;
+  } catch (error) {
+    const failure = error instanceof Error ? error : new Error(filesystemReadOnlyMessage());
+    failure.message = filesystemReadOnlyMessage();
+    throw failure;
+  }
 }

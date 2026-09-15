@@ -94,9 +94,35 @@ function Area({
   );
 }
 
+async function compressImage(file: File) {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") {
+    return file;
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxWidth = 1600;
+    const scale = Math.min(1, maxWidth / bitmap.width);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.82)
+    );
+    bitmap.close();
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 async function uploadImage(file: File) {
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", await compressImage(file));
   const response = await fetch("/api/admin/upload", {
     method: "POST",
     body: formData,
