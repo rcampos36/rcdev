@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { ProjectItem, ServiceItem, SiteContent } from "@/lib/content-types";
+import { readResponseJson } from "@/lib/read-json";
 
 type Tab = "projects" | "services" | "contact" | "site";
 
@@ -101,7 +102,7 @@ async function compressImage(file: File) {
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxWidth = 1600;
+    const maxWidth = 1400;
     const scale = Math.min(1, maxWidth / bitmap.width);
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(bitmap.width * scale);
@@ -110,7 +111,7 @@ async function compressImage(file: File) {
     if (!context) return file;
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.82)
+      canvas.toBlob(resolve, "image/jpeg", 0.78)
     );
     bitmap.close();
     if (!blob) return file;
@@ -120,14 +121,42 @@ async function compressImage(file: File) {
   }
 }
 
+function fileExtension(file: File) {
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/gif") return "gif";
+  if (file.type === "image/webp") return "webp";
+  return "jpg";
+}
+
 async function uploadImage(file: File) {
+  const compressed = await compressImage(file);
+  const modeResponse = await fetch("/api/admin/upload");
+  const mode = await readResponseJson<{ blob?: boolean; error?: string }>(modeResponse);
+  if (!modeResponse.ok) {
+    throw new Error(mode.error || "Not authorized to upload");
+  }
+
+  if (mode.blob) {
+    const { upload } = await import("@vercel/blob/client");
+    const blob = await upload(
+      `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExtension(compressed)}`,
+      compressed,
+      {
+        access: "public",
+        handleUploadUrl: "/api/admin/upload",
+        contentType: compressed.type || "image/jpeg",
+      }
+    );
+    return blob.url;
+  }
+
   const formData = new FormData();
-  formData.append("file", await compressImage(file));
+  formData.append("file", compressed);
   const response = await fetch("/api/admin/upload", {
     method: "POST",
     body: formData,
   });
-  const data = (await response.json()) as { url?: string; error?: string };
+  const data = await readResponseJson<{ url?: string; error?: string }>(response);
   if (!response.ok || !data.url) {
     throw new Error(data.error || "Upload failed");
   }
@@ -223,7 +252,7 @@ export default function ContentEditor({ initialContent }: { initialContent: Site
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(content),
       });
-      const data = (await response.json()) as SiteContent & { error?: string };
+      const data = await readResponseJson<SiteContent & { error?: string }>(response);
       if (!response.ok) {
         setError(data.error || "Failed to save");
         return;
@@ -233,8 +262,8 @@ export default function ContentEditor({ initialContent }: { initialContent: Site
       setDirty(false);
       setMessage("Content saved. The live site is updated.");
       router.refresh();
-    } catch {
-      setError("Failed to save");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to save");
     } finally {
       setSaving(false);
     }
