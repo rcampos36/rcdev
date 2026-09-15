@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSessionToken, getAdminPassword, sessionCookieOptions, ADMIN_COOKIE } from "@/lib/auth";
+import { createSessionToken, getAdminPassword, sessionCookieOptions, ADMIN_COOKIE, normalizeSecret } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { password?: string };
-    const password = body.password ?? "";
+    const password = normalizeSecret(body.password);
     const expected = getAdminPassword();
 
     if (!expected) {

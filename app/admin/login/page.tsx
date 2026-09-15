@@ -70,8 +70,9 @@ export default function AdminLoginPage() {
         </form>
         {process.env.NODE_ENV !== "production" ? (
           <p className="mt-6 text-sm text-gray-400 font-big-shoulders">
-            Local default password is <span className="text-gray-700">admin</span> unless{" "}
-            <span className="text-gray-700">ADMIN_PASSWORD</span> is set.
+            Set the password in <span className="text-gray-700">.env.local</span> as{" "}
+            <span className="text-gray-700">ADMIN_PASSWORD</span>, then restart the server.
+            Until then, the local password is <span className="text-gray-700">admin</span>.
           </p>
         ) : null}
       </div>

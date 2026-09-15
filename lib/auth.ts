@@ -1,8 +1,21 @@
 export const ADMIN_COOKIE = "rcdev_admin";
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 
+export function normalizeSecret(value: string | undefined | null) {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
 export function getAdminPassword() {
-  if (process.env.ADMIN_PASSWORD) return process.env.ADMIN_PASSWORD;
+  const configured = normalizeSecret(process.env.ADMIN_PASSWORD);
+  if (configured) return configured;
   if (process.env.NODE_ENV !== "production") return "admin";
   return "";
 }
