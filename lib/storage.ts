@@ -6,11 +6,14 @@ export const CONTENT_BLOB_PATH = "cms/content.json";
 const LOCAL_UPLOAD_DIR = path.join(process.cwd(), "public", "images");
 
 export function hasBlobStore() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+  return Boolean(
+    process.env.BLOB_READ_WRITE_TOKEN ||
+      (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN)
+  );
 }
 
 export function blobMissingMessage() {
-  return "Vercel Blob is not connected. In the Blob store, open Projects → Connect to Project, then redeploy. BLOB_STORE_ID is enough; you do not need to create BLOB_READ_WRITE_TOKEN by hand.";
+  return "Image uploads on Vercel need Blob storage. In Vercel: Storage → your Blob store → Projects → Connect to Project (this site) → Production → Redeploy. The store must be Public.";
 }
 
 export function filesystemReadOnlyMessage() {
@@ -50,13 +53,23 @@ export async function readContentBlob() {
 }
 
 export async function saveImageToBlob(filename: string, bytes: Buffer, contentType: string) {
-  const blob = await put(`uploads/${filename}`, bytes, {
-    access: "public",
-    addRandomSuffix: true,
-    contentType,
-    cacheControlMaxAge: 60 * 60 * 24 * 365,
-  });
-  return blob.url;
+  try {
+    const blob = await put(`uploads/${filename}`, bytes, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType,
+      cacheControlMaxAge: 60 * 60 * 24 * 365,
+    });
+    return blob.url;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Blob upload failed";
+    if (/access|private/i.test(message)) {
+      throw new Error(
+        "This Blob store is Private. Create a Public Blob store, connect it to this project, and redeploy."
+      );
+    }
+    throw new Error(message);
+  }
 }
 
 export async function saveImageToDisk(filename: string, bytes: Buffer) {

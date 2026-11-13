@@ -205,12 +205,26 @@ export default function ContentEditor({ initialContent }: { initialContent: Site
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [storageHint, setStorageHint] = useState("");
 
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(initialContent));
 
   useEffect(() => {
     setDirty(JSON.stringify(content) !== savedSnapshot);
   }, [content, savedSnapshot]);
+
+  useEffect(() => {
+    fetch("/api/admin/storage")
+      .then((response) => response.json())
+      .then((data: { blob?: boolean }) => {
+        if (!data.blob) {
+          setStorageHint(
+            "Production image uploads need a Public Vercel Blob store connected to this project, then a redeploy."
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
@@ -309,6 +323,7 @@ export default function ContentEditor({ initialContent }: { initialContent: Site
       </header>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {storageHint ? <p className="mb-6 text-sm text-amber-700">{storageHint}</p> : null}
         {message ? <p className="mb-6 text-sm text-green-700">{message}</p> : null}
         {error ? <p className="mb-6 text-sm text-red-600">{error}</p> : null}
 

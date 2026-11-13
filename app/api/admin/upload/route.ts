@@ -64,8 +64,18 @@ export async function POST(request: NextRequest) {
     const contentType = file.type || "image/jpeg";
 
     if (hasBlobStore()) {
-      const url = await saveImageToBlob(safeName, bytes, contentType);
-      return NextResponse.json({ url });
+      try {
+        const url = await saveImageToBlob(safeName, bytes, contentType);
+        return NextResponse.json({ url });
+      } catch (blobError) {
+        console.error("Blob image upload failed", blobError);
+        const message = blobError instanceof Error ? blobError.message : blobMissingMessage();
+        return jsonError(message, 500);
+      }
+    }
+
+    if (process.env.VERCEL) {
+      return jsonError(blobMissingMessage(), 500);
     }
 
     try {
@@ -81,9 +91,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Image upload failed", error);
     const message = error instanceof Error ? error.message : "Failed to upload image";
-    return jsonError(
-      /token|oidc|blob/i.test(message) ? blobMissingMessage() : message,
-      500
-    );
+    return jsonError(message, 500);
   }
 }
