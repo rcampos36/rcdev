@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import path from "path";
 
 export const CONTENT_BLOB_PATH = "cms/content.json";
-const LOCAL_UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
+const LOCAL_UPLOAD_DIR = path.join(process.cwd(), "public", "images");
 
 export function hasBlobStore() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
@@ -62,7 +62,7 @@ export async function saveImageToBlob(filename: string, bytes: Buffer, contentTy
 export async function saveImageToDisk(filename: string, bytes: Buffer) {
   await fs.mkdir(LOCAL_UPLOAD_DIR, { recursive: true });
   await fs.writeFile(path.join(LOCAL_UPLOAD_DIR, filename), bytes);
-  return `/api/media/${filename}`;
+  return `/images/${filename}`;
 }
 
 export async function readLocalImage(filename: string) {
