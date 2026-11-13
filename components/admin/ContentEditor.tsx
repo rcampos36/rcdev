@@ -219,7 +219,7 @@ export default function ContentEditor({ initialContent }: { initialContent: Site
       .then((data: { blob?: boolean }) => {
         if (!data.blob) {
           setStorageHint(
-            "Production image uploads need a Public Vercel Blob store connected to this project, then a redeploy."
+            "This deployment cannot reach Blob yet. Redeploy production after connecting rcdev-blob so image uploads can save."
           );
         }
       })

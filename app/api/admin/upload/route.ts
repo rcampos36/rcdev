@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ url });
       } catch (blobError) {
         console.error("Blob image upload failed", blobError);
-        const message = blobError instanceof Error ? blobError.message : blobMissingMessage();
+        const message = blobError instanceof Error ? blobError.message : "Failed to upload image";
         return jsonError(message, 500);
       }
     }
