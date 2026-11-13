@@ -5,6 +5,11 @@ const nextConfig = {
   // Production optimizations
   compress: true,
   poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "4mb",
+    },
+  },
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],

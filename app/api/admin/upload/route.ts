@@ -9,6 +9,7 @@ import {
 } from "@/lib/storage";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -59,24 +60,25 @@ export async function POST(request: NextRequest) {
       return jsonError("Image must be 4MB or smaller", 400);
     }
 
-    const bytes = Buffer.from(await file.arrayBuffer());
     const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
     const contentType = file.type || "image/jpeg";
 
     if (hasBlobStore()) {
       try {
-        const url = await saveImageToBlob(safeName, bytes, contentType);
+        const url = await saveImageToBlob(safeName, file, contentType);
         return NextResponse.json({ url });
       } catch (blobError) {
         console.error("Blob image upload failed", blobError);
         const message = blobError instanceof Error ? blobError.message : "Failed to upload image";
-        return jsonError(message, 500);
+        return jsonError(message, 502);
       }
     }
 
     if (process.env.VERCEL) {
       return jsonError(blobMissingMessage(), 500);
     }
+
+    const bytes = Buffer.from(await file.arrayBuffer());
 
     try {
       const url = await saveImageToDisk(safeName, bytes);

@@ -102,7 +102,7 @@ async function compressImage(file: File) {
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxWidth = 1200;
+    const maxWidth = 1400;
     const scale = Math.min(1, maxWidth / bitmap.width);
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(bitmap.width * scale);
@@ -110,12 +110,17 @@ async function compressImage(file: File) {
     const context = canvas.getContext("2d");
     if (!context) return file;
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.72)
-    );
     bitmap.close();
-    if (!blob) return file;
-    return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
+
+    let lastBlob: Blob | null = null;
+    for (const quality of [0.72, 0.6, 0.48]) {
+      lastBlob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", quality)
+      );
+      if (lastBlob && lastBlob.size <= 800_000) break;
+    }
+    if (!lastBlob) return file;
+    return new File([lastBlob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
   } catch {
     return file;
   }
@@ -129,15 +134,32 @@ async function uploadImage(file: File) {
 
   const formData = new FormData();
   formData.append("file", compressed);
-  const response = await fetch("/api/admin/upload", {
-    method: "POST",
-    body: formData,
-  });
-  const data = await readResponseJson<{ url?: string; error?: string }>(response);
-  if (!response.ok || !data.url) {
-    throw new Error(data.error || "Upload failed");
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 45_000);
+
+  try {
+    const response = await fetch("/api/admin/upload", {
+      method: "POST",
+      body: formData,
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+    const data = await readResponseJson<{ url?: string; error?: string }>(response);
+    if (!response.ok || !data.url) {
+      throw new Error(data.error || "Upload failed");
+    }
+    return data.url;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Upload timed out. Try a smaller JPG.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error("Upload did not complete. Try a smaller JPG and stay on this page until it finishes.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
   }
-  return data.url;
 }
 
 function ImageField({
@@ -216,8 +238,12 @@ export default function ContentEditor({ initialContent }: { initialContent: Site
   useEffect(() => {
     fetch("/api/admin/storage")
       .then((response) => response.json())
-      .then((data: { blob?: boolean }) => {
-        if (!data.blob) {
+      .then((data: { blob?: boolean; oidc?: boolean; rwToken?: boolean; vercel?: boolean; storeId?: boolean }) => {
+        if (data.vercel && data.storeId && !data.oidc && !data.rwToken) {
+          setStorageHint(
+            "Blob is connected, but this deployment has no upload token. In the Blob store open the .env.local tab, copy BLOB_READ_WRITE_TOKEN into Production env vars, then Redeploy."
+          );
+        } else if (!data.blob) {
           setStorageHint(
             "This deployment cannot reach Blob yet. Redeploy production after connecting rcdev-blob so image uploads can save."
           );

@@ -1,38 +1,32 @@
-import { BlobAccessError, get, list, put, type PutBlobResult } from "@vercel/blob";
+import { get, list, put } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
 
 export const CONTENT_BLOB_PATH = "cms/content.json";
 export const CMS_IMAGE_PREFIX = "/api/cms-image/";
 const LOCAL_UPLOAD_DIR = path.join(process.cwd(), "public", "images");
-
-type BlobAccess = "public" | "private";
-
-let cachedAccess: BlobAccess | null = null;
+const BLOB_ACCESS = "private" as const;
 
 export function hasBlobStore() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 }
 
+export function blobCredentialStatus() {
+  return {
+    blob: hasBlobStore(),
+    storeId: Boolean(process.env.BLOB_STORE_ID),
+    oidc: Boolean(process.env.VERCEL_OIDC_TOKEN),
+    rwToken: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    vercel: Boolean(process.env.VERCEL),
+  };
+}
+
 export function blobMissingMessage() {
-  return "Vercel Blob is connected as a Private store. Redeploy so this app can upload with private access, then try the image again.";
+  return "Vercel Blob needs a credential. In the Blob store open the .env.local tab, copy BLOB_READ_WRITE_TOKEN into this project’s Production environment variables, then Redeploy.";
 }
 
 export function filesystemReadOnlyMessage() {
   return "This host cannot write files. Connect a Vercel Blob store to save images and content in production.";
-}
-
-function preferredAccess(): BlobAccess {
-  if (process.env.BLOB_ACCESS === "public" || process.env.BLOB_ACCESS === "private") {
-    return process.env.BLOB_ACCESS;
-  }
-  return cachedAccess ?? "private";
-}
-
-function isAccessError(error: unknown) {
-  if (error instanceof BlobAccessError) return true;
-  const message = error instanceof Error ? error.message : String(error);
-  return /access|private|public/i.test(message);
 }
 
 function publicImageUrl(pathname: string) {
@@ -43,52 +37,24 @@ function publicImageUrl(pathname: string) {
     .join("/")}`;
 }
 
-async function putSiteBlob(
-  pathname: string,
-  body: Buffer | string,
-  options: {
-    addRandomSuffix?: boolean;
-    allowOverwrite?: boolean;
-    contentType: string;
-    cacheControlMaxAge?: number;
+function wrapBlobError(error: unknown): Error {
+  const message = error instanceof Error ? error.message : "Blob upload failed";
+  if (/failed to fetch|network|oidc|token|unauthorized|403|401/i.test(message)) {
+    return new Error(blobMissingMessage());
   }
-): Promise<{ blob: PutBlobResult; access: BlobAccess }> {
-  const first = preferredAccess();
-  const second: BlobAccess = first === "private" ? "public" : "private";
-
-  try {
-    const blob = await put(pathname, body, { ...options, access: first });
-    cachedAccess = first;
-    return { blob, access: first };
-  } catch (error) {
-    if (!isAccessError(error)) throw error;
-    const blob = await put(pathname, body, { ...options, access: second });
-    cachedAccess = second;
-    return { blob, access: second };
-  }
+  return error instanceof Error ? error : new Error(message);
 }
 
-async function getSiteBlob(pathname: string, useCache = true) {
-  const first = preferredAccess();
-  const second: BlobAccess = first === "private" ? "public" : "private";
-
-  try {
-    const result = await get(pathname, { access: first, useCache });
-    if (result) {
-      cachedAccess = first;
-      return result;
-    }
-  } catch (error) {
-    if (!isAccessError(error)) throw error;
-  }
-
-  const result = await get(pathname, { access: second, useCache });
-  if (result) cachedAccess = second;
-  return result;
+function toPutBody(body: File | Blob | Buffer | Uint8Array | string) {
+  if (typeof body === "string") return body;
+  if (body instanceof File || body instanceof Blob) return body;
+  const bytes = body instanceof Buffer ? body : Buffer.from(body);
+  return new Blob([bytes]);
 }
 
 export async function writeContentBlob(json: string) {
-  const { blob } = await putSiteBlob(CONTENT_BLOB_PATH, json, {
+  const blob = await put(CONTENT_BLOB_PATH, json, {
+    access: BLOB_ACCESS,
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json; charset=utf-8",
@@ -101,7 +67,7 @@ export async function readContentBlob() {
   if (!hasBlobStore()) return null;
 
   try {
-    const result = await getSiteBlob(CONTENT_BLOB_PATH, false);
+    const result = await get(CONTENT_BLOB_PATH, { access: BLOB_ACCESS, useCache: false });
     if (result?.statusCode === 200 && result.stream) {
       return await new Response(result.stream).text();
     }
@@ -115,27 +81,33 @@ export async function readContentBlob() {
       (item) => item.pathname === CONTENT_BLOB_PATH || item.pathname.endsWith(`/${CONTENT_BLOB_PATH}`)
     );
     if (!match?.url) return null;
-    const response = await fetch(match.url, { cache: "no-store" });
-    if (!response.ok) return null;
-    return response.text();
+    const result = await get(match.url, { access: BLOB_ACCESS, useCache: false });
+    if (result?.statusCode === 200 && result.stream) {
+      return await new Response(result.stream).text();
+    }
+    return null;
   } catch (error) {
     console.error("Failed to read blob content via list()", error);
     return null;
   }
 }
 
-export async function saveImageToBlob(filename: string, bytes: Buffer, contentType: string) {
-  const { blob, access } = await putSiteBlob(`uploads/${filename}`, bytes, {
-    addRandomSuffix: true,
-    contentType,
-    cacheControlMaxAge: 60 * 60 * 24 * 365,
-  });
-
-  if (access === "private") {
+export async function saveImageToBlob(
+  filename: string,
+  body: File | Blob | Buffer | Uint8Array,
+  contentType: string
+) {
+  try {
+    const blob = await put(`uploads/${filename}`, toPutBody(body), {
+      access: BLOB_ACCESS,
+      addRandomSuffix: true,
+      contentType,
+      cacheControlMaxAge: 60 * 60 * 24 * 365,
+    });
     return publicImageUrl(blob.pathname);
+  } catch (error) {
+    throw wrapBlobError(error);
   }
-
-  return blob.url;
 }
 
 export async function readBlobImage(pathname: string) {
@@ -144,7 +116,7 @@ export async function readBlobImage(pathname: string) {
     return null;
   }
 
-  const result = await getSiteBlob(safePath);
+  const result = await get(safePath, { access: BLOB_ACCESS });
   if (result?.statusCode !== 200 || !result.stream) return null;
 
   return {

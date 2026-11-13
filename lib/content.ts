@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { SiteContent } from "./content-types";
 import { DEFAULT_CONTENT } from "./default-content";
-import { filesystemReadOnlyMessage, hasBlobStore, readContentBlob, writeContentBlob } from "./storage";
+import { blobMissingMessage, filesystemReadOnlyMessage, hasBlobStore, readContentBlob, writeContentBlob } from "./storage";
 
 const CONTENT_PATH = path.join(process.cwd(), "data", "content.json");
 
@@ -61,7 +61,15 @@ export async function saveContent(content: SiteContent): Promise<SiteContent> {
   const json = JSON.stringify(merged, null, 2);
 
   if (hasBlobStore()) {
-    await writeContentBlob(json);
+    try {
+      await writeContentBlob(json);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (/failed to fetch|token|oidc|unauthorized|403/i.test(message)) {
+        throw new Error(blobMissingMessage());
+      }
+      throw error;
+    }
     try {
       await fs.mkdir(path.dirname(CONTENT_PATH), { recursive: true });
       await fs.writeFile(CONTENT_PATH, json, "utf8");
